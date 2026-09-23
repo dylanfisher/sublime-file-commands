@@ -2,7 +2,6 @@
 	{ "caption": "File: Move", "command": "file_commands_move" },
 	{ "caption": "File: Duplicate", "command": "file_commands_duplicate" },
 	{ "caption": "File: Reveal", "command": "open_dir", "args": {"dir": "$file_path", "file": "$file_name"} },
-	{ "caption": "File: Locate", "command": "reveal_in_side_bar" },
 	{ "caption": "File: Delete", "command": "file_commands_delete" },
 	{ "caption": "File: Copy Name", "command": "file_commands_copy_name" },
 	{ "caption": "File: Copy Path", "command": "file_commands_copy_path" },
