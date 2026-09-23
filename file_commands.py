@@ -1,7 +1,8 @@
-"""Command palette file commands for the active view: move, duplicate, delete, copy path."""
+"""File commands for the active view: move, duplicate, delete, copy path."""
 
 from __future__ import annotations
 
+import functools
 import os
 import shutil
 
@@ -51,35 +52,16 @@ def project_folder(window: sublime.Window, path: str) -> str | None:
     return max(matches, key=len) if matches else None
 
 
-class PathInputHandler(sublime_plugin.TextInputHandler):
-    """Full path to the file, with the name (minus extension) selected."""
-
-    def __init__(self, path: str) -> None:
-        self.path = path
-
-    def name(self) -> str:
-        return "new_path"
-
-    def placeholder(self) -> str:
-        return "New path (relative to the file's folder, or absolute)"
-
-    def initial_text(self) -> str:
-        return self.path
-
-    def initial_selection(self) -> list[tuple[int, int]]:
-        stem = os.path.splitext(os.path.basename(self.path))[0]
-        start = len(self.path) - len(os.path.basename(self.path))
-        return [(start, start + len(stem))]
-
-    def validate(self, text: str) -> bool:
-        return bool(text.strip())
-
-    def preview(self, text: str) -> str:
-        if not text.strip():
-            return ""
-        new = resolve(self.path, text)
-        exists = os.path.exists(new) and not same_file(self.path, new)
-        return new + ("  (exists, will ask to replace)" if exists else "")
+def show_path_panel(window: sublime.Window, caption: str, old: str, text: str, on_done) -> None:
+    """Ask for a path in the input panel at the bottom of the window, with the
+    file name (minus extension) selected when it starts from the file's own path."""
+    window.run_command("hide_panel")
+    view = window.show_input_panel(caption, text, on_done, None, None)
+    if text == old:
+        name = os.path.basename(old)
+        start = len(old) - len(name)
+        view.sel().clear()
+        view.sel().add(sublime.Region(start, start + len(os.path.splitext(name)[0])))
 
 
 class FileCommand(sublime_plugin.WindowCommand):
@@ -88,9 +70,20 @@ class FileCommand(sublime_plugin.WindowCommand):
 
 
 class FileCommandsMoveCommand(FileCommand):
-    def run(self, new_path: str) -> None:
+    def run(self, new_path: str | None = None) -> None:
         old = active_file(self.window)
         if old is None:
+            return
+        if new_path is None:
+            self.show_panel(old, old)
+        else:
+            self.move(old, new_path)
+
+    def show_panel(self, old: str, text: str) -> None:
+        show_path_panel(self.window, "New Location:", old, text, functools.partial(self.move, old))
+
+    def move(self, old: str, new_path: str) -> None:
+        if not new_path.strip():
             return
         new = resolve(old, new_path)
         if new == old:
@@ -98,6 +91,7 @@ class FileCommandsMoveCommand(FileCommand):
         same = same_file(old, new)
         if os.path.exists(new) and not same:
             if not confirm_overwrite(new):
+                self.show_panel(old, new_path)
                 return
             trash(new)
         try:
@@ -111,6 +105,7 @@ class FileCommandsMoveCommand(FileCommand):
                 shutil.move(old, new)
         except OSError as e:
             sublime.error_message(f"Unable to move:\n\n{old}\n\nto\n\n{new}\n\n{e.strerror or e}")
+            self.show_panel(old, new_path)
             return
         for window in sublime.windows():
             view = window.find_open_file(old)
@@ -118,27 +113,33 @@ class FileCommandsMoveCommand(FileCommand):
                 view.retarget(new)
         sublime.status_message(f"Moved to {new}")
 
-    def input(self, args: dict) -> sublime_plugin.CommandInputHandler | None:
-        old = active_file(self.window)
-        if "new_path" not in args and old:
-            return PathInputHandler(old)
-        return None
-
-    def input_description(self) -> str:
-        return "Move"
-
 
 class FileCommandsDuplicateCommand(FileCommand):
-    def run(self, new_path: str) -> None:
+    def run(self, new_path: str | None = None) -> None:
         old = active_file(self.window)
         if old is None:
+            return
+        if new_path is None:
+            self.show_panel(old, old)
+        else:
+            self.duplicate(old, new_path)
+
+    def show_panel(self, old: str, text: str) -> None:
+        show_path_panel(
+            self.window, "Duplicate As:", old, text, functools.partial(self.duplicate, old)
+        )
+
+    def duplicate(self, old: str, new_path: str) -> None:
+        if not new_path.strip():
             return
         new = resolve(old, new_path)
         if same_file(old, new) or new == old:
             sublime.error_message("The copy needs a different name or folder.")
+            self.show_panel(old, new_path)
             return
         if os.path.exists(new):
             if not confirm_overwrite(new):
+                self.show_panel(old, new_path)
                 return
             trash(new)
         try:
@@ -146,17 +147,9 @@ class FileCommandsDuplicateCommand(FileCommand):
             shutil.copy2(old, new)
         except OSError as e:
             sublime.error_message(f"Unable to copy:\n\n{old}\n\nto\n\n{new}\n\n{e.strerror or e}")
+            self.show_panel(old, new_path)
             return
         self.window.open_file(new)
-
-    def input(self, args: dict) -> sublime_plugin.CommandInputHandler | None:
-        old = active_file(self.window)
-        if "new_path" not in args and old:
-            return PathInputHandler(old)
-        return None
-
-    def input_description(self) -> str:
-        return "Duplicate As"
 
 
 class FileCommandsDeleteCommand(FileCommand):
