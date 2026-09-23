@@ -1,0 +1,8 @@
+[
+	{ "caption": "File: Move", "command": "file_commands_move" },
+	{ "caption": "File: Duplicate", "command": "file_commands_duplicate" },
+	{ "caption": "File: Delete", "command": "file_commands_delete" },
+	{ "caption": "File: Copy Name", "command": "file_commands_copy_name" },
+	{ "caption": "File: Copy Path", "command": "file_commands_copy_path" },
+	{ "caption": "File: Copy Relative Path", "command": "file_commands_copy_relative_path" },
+]
