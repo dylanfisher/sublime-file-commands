@@ -2,12 +2,13 @@
 
 Command palette file commands for the active file, split out of SideBarEnhancements:
 
+- **File: Rename**: edit the file name in the input panel at the bottom of the window. It works like Move, so you can also type a relative or absolute path.
 - **File: Move**: edit the full path (relative paths resolve against the file's folder, an existing folder moves the file into it, missing folders get created). Any open views follow the file.
 - **File: Duplicate**: copy to a new path and open it.
 - **File: Reveal**: show the file in Finder.
 - **File: Delete**: move to the trash (Sublime's built-in `delete_file`).
 - **File: Copy Name / Copy Path / Copy Relative Path**
 
-Sublime's built-in **File: Rename File** covers renaming in place.
+Sublime's built-in **File: Rename File** asks in the command palette instead.
 
 Install by symlinking this repo into `Packages/FileCommands`.

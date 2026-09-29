@@ -1,4 +1,4 @@
-"""File commands for the active view: move, duplicate, delete, copy path."""
+"""File commands for the active view: rename, move, duplicate, delete, copy path."""
 
 from __future__ import annotations
 
@@ -54,12 +54,13 @@ def project_folder(window: sublime.Window, path: str) -> str | None:
 
 def show_path_panel(window: sublime.Window, caption: str, old: str, text: str, on_done) -> None:
     """Ask for a path in the input panel at the bottom of the window, with the
-    file name (minus extension) selected when it starts from the file's own path."""
+    file name (minus extension) selected when it starts from the file's own
+    path or name."""
     window.run_command("hide_panel")
     view = window.show_input_panel(caption, text, on_done, None, None)
-    if text == old:
-        name = os.path.basename(old)
-        start = len(old) - len(name)
+    name = os.path.basename(old)
+    if text in (old, name):
+        start = len(text) - len(name)
         view.sel().clear()
         view.sel().add(sublime.Region(start, start + len(os.path.splitext(name)[0])))
 
@@ -112,6 +113,23 @@ class FileCommandsMoveCommand(FileCommand):
             if view:
                 view.retarget(new)
         sublime.status_message(f"Moved to {new}")
+
+
+class FileCommandsRenameCommand(FileCommandsMoveCommand):
+    """Move, starting from just the file name. A name resolves against the
+    file's folder, so a relative or absolute path still moves it."""
+
+    def run(self, new_name: str | None = None) -> None:
+        old = active_file(self.window)
+        if old is None:
+            return
+        if new_name is None:
+            self.show_panel(old, os.path.basename(old))
+        else:
+            self.move(old, new_name)
+
+    def show_panel(self, old: str, text: str) -> None:
+        show_path_panel(self.window, "New Name:", old, text, functools.partial(self.move, old))
 
 
 class FileCommandsDuplicateCommand(FileCommand):

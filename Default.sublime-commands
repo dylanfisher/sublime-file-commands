@@ -1,4 +1,5 @@
 [
+	{ "caption": "File: Rename", "command": "file_commands_rename" },
 	{ "caption": "File: Move", "command": "file_commands_move" },
 	{ "caption": "File: Duplicate", "command": "file_commands_duplicate" },
 	{ "caption": "File: Reveal", "command": "open_dir", "args": {"dir": "$file_path", "file": "$file_name"} },
